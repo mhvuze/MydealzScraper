@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# coding: utf8
 
 '''
 The MIT License (MIT)
@@ -22,6 +21,7 @@ SOFTWARE.
 '''
 
 import bs4 as bs
+import datetime
 import re
 import sys
 import urllib.request
@@ -34,7 +34,7 @@ max_pages = 10
 page_number = 1
 
 # Wanted
-wanted_articles="GoPro"
+wanted_articles="Apple"
 print("Suche nach Deals für:", wanted_articles) # adapt later for list from file
 print("---------------")
 
@@ -43,6 +43,11 @@ def debug(text):
 	if debug_mode:
 		print(Fore.YELLOW + "DEBUG: " + text)
 	return 0
+
+# Unix time handler
+def gettime(unix):
+        time = datetime.datetime.fromtimestamp(int(unix)).strftime('%Y-%m-%d %H:%M:%S')
+        return time
 
 # Main
 while page_number < max_pages+1:
@@ -67,19 +72,24 @@ while page_number < max_pages+1:
             title = thread.string # text also works
             link = thread.get("href")
 
+            # Fetch and convert time
+            timestamp = thread.parent.parent.parent.find(class_=re.compile("mute--text overflow--wrap-off space--h-2")).attrs['datetime']
+            
             # Try to fetch price (may fail for freebies)
             try:
                 pricestr = thread.parent.parent.parent.find(class_=re.compile("thread-price")).string.strip()
             except:
                 pricestr="0"
 
-            print ("%s für %s: %s" % (title, pricestr, link))
+            # Replace Euro sign for processing
+            if("€" in pricestr):
+                    price = float(pricestr.replace('€', '').replace('.', '').replace(',', '.'))
+            else:
+                    price = 0
 
+            print("[%s] %s für %s Euro: %s" % (gettime(timestamp), title.replace('€', ''), int(price), link))
+            
     page_number += 1
-
-# datetime
-# 1485372598: ca 20:30 Uhr
-# 1485371232: ca 20:08 Uhr
 
 # Debug only
 #with open('temp.txt', 'w') as file_:
