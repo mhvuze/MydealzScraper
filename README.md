@@ -1,10 +1,24 @@
 # MydealzScraper
-Scraper for mydealz.de. Not affiliated with MyDealz in any way. Uses parts from [mydealz_alert](https://github.com/pfannkuchengesicht/mydealz_alert/).
+Scraper for mydealz.de that also offers bot functionalities for Telegram. Not affiliated with MyDealz in any way. Uses parts from [mydealz_alert](https://github.com/pfannkuchengesicht/mydealz_alert/).
 
 ## Requirements
 Install the following libraries to use this script:
 * bs4
 * colorama
+* maybe more that are not part of Python by default
 
 ## Usage
-Script is still heavily work in progress. Will update at a later point in time.
+You can control the following settings in `settings.txt`:
+* debug_mode: Enable/disable debug messages
+* short_url: Enable/disable short urls for deal messages
+* max_pages: Set amount of pages that should be scraped per cycle (depending on sleep time, I recommend 1 or 2)
+* sleep_time: Set time to sleep after each cycle
+* telegram: Enable/disable telegram messages for new deals
+* tg_token: Set token of your telegram bot
+
+You can use the following commands on Telegram:
+* /add <item>: Add item to list of wanted products
+* /remove <item>: Remove item from list of wanted products
+* /list: Show list of all wanted products
+* /reset: Reset list of discovered deals
+* /hello: Ask for life sign without changing anything
