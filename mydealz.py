@@ -207,7 +207,7 @@ while True:
 
                                     print("[%s] %s für %s Euro: %s" % (gettime(timestamp), title.replace('€', ''), int(price), proc_link))
                                     if telegram:
-                                            send_message(("%s (%s €): %s" % (title, int(price), proc_link)), 199132011) # my chat with the bot
+                                            send_message(("%s (%s €): %s" % (title, int(price), proc_link)), 1234) # my chat with the bot
 
                                     # Save deal to prevent duplicate messaging
                                     with open("./found.txt", "a") as found:
