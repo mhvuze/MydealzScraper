@@ -36,11 +36,12 @@ from pyshorteners import Shortener
 # Basic stuff
 init(autoreset=True) # Colorama
 shortener = Shortener('Isgd')
-page_number = 12
+page_number = 1
 debug_mode = 0
 short_url = 0
 telegram = 0
 tg_updateid = None
+
 
 # Get settings from file
 settings = {}
@@ -56,20 +57,28 @@ sleep_time = settings["sleep_time"]
 tg_token = settings["tg_token"]
 tg_url = "https://api.telegram.org/bot{}/".format(tg_token)
 
-# Get already found deals from file
-found_deals = [line.rstrip('\n') for line in open ("./found.txt")]
-print("Bereits gespeicherte Deals:", len(found_deals))
-
-# Get wanted articles from file
-wanted_articles = [line.rstrip('\n') for line in open ("./wanted.txt")]
-print("Suche nach Deals für:", wanted_articles)
-print("---------------")
-
 # Debug mode
 def debug(text):
         if debug_mode:
                 print(Fore.YELLOW + "DEBUG: " + text)
         return 0
+
+# Get last telegram update ID
+with open("tg_update.txt", "r") as id:
+        tg_updateid = id.readline()
+debug("Last Telegram update id " + str(tg_updateid))
+
+# Get already found deals from file
+def get_found():
+        global found_deals
+        found_deals = [line.rstrip('\n') for line in open ("./found.txt")]
+        print("Bereits gespeicherte Deals:", len(found_deals))
+
+# Get wanted articles from file
+def get_wanted():
+        global wanted_articles
+        wanted_articles = [line.rstrip('\n') for line in open ("./wanted.txt")]
+        print(Fore.CYAN + "Suche nach Deals für: " + str(wanted_articles).replace("[", "").replace("]", ""))
 
 # Unix time handler
 def gettime(unix):
@@ -77,7 +86,7 @@ def gettime(unix):
         return time
 
 # Telegram functions
-# from: https://www.codementor.io/garethdwyer/building-a-telegram-bot-using-python-part-1-goi5fncay
+# mostly from: https://www.codementor.io/garethdwyer/building-a-telegram-bot-using-python-part-1-goi5fncay
 def get_url(url):
         response = requests.get(url)
         content = response.content.decode("utf-8")
@@ -89,7 +98,7 @@ def get_json_from_url(url):
         return js
 
 def get_updates(offset=None):
-        url = tg_url + "getUpdates?timeout=100"
+        url = tg_url + "getUpdates?timeout=100" # added wait time between cycles
         if offset:
             url += "&offset={}".format(offset)
         js = get_json_from_url(url)
@@ -101,24 +110,50 @@ def get_last_update_id(updates):
         update_ids.append(int(update["update_id"]))
     return max(update_ids)
 
-def get_last_chat_id_and_text(updates):
-        num_updates = len(updates["result"])
-        last_update = num_updates - 1
-        text = updates["result"][last_update]["message"]["text"]
-        chat_id = updates["result"][last_update]["message"]["chat"]["id"]
-        return (text, chat_id)
-
 def send_message(text, chat_id):
         text = urllib.parse.quote_plus(text)
         url = tg_url + "sendMessage?text={}&chat_id={}&disable_web_page_preview=true".format(text, chat_id)
         get_url(url)
 
+def process_updates(updates):
+        for update in updates["result"]:
+                text = update["message"]["text"]
+                chat = update["message"]["chat"]["id"]
+                if "/add" in text:
+                        with open("./wanted.txt", "a") as add:
+                                add.write(text.replace("/add ", "") + "\n")
+                        send_message("Schlagwort wurde der Liste hinzugefügt.", chat)
+                        get_wanted()
+                if "/remove" in text:
+                        with open("./wanted.txt", "r") as list:
+                                lines = list.readlines()
+                        with open("./wanted.txt", "w") as remove:
+                                for line in lines:
+                                        if line.lower() != (text.replace("/remove ", "") + "\n").lower():
+                                                remove.write(line)
+                        send_message("Schlagwort wurde von der Liste entfernt.", chat)
+                        get_wanted()
+                if "/reset" in text:
+                        open("./found.txt", "w").close()
+                        send_message("Liste der gefundenen Deals wurde geleert.", chat)
+                        get_found()
+                if "/list" in text:
+                        send_message("Suche nach Deals für: " + str(wanted_articles).replace("[", "").replace("]", ""), chat)
+                if "/hello" in text:
+                        send_message("Hi! Ich bin noch da, keine Sorge.", chat)
+
 # Main
+get_wanted()
+get_found()
+
 while True:
     # Check Telegram for commands
-    #updates = get_updates(tg_updateid)
-    #if len(updates["result"]) > 0:
-    #        tg_updateid = get_last_update_id(updates) + 1
+    updates = get_updates(tg_updateid)    
+    if len(updates["result"]) > 0:
+            tg_updateid = get_last_update_id(updates) + 1
+            process_updates(updates)
+    with open("tg_update.txt", "w") as id:
+        id.write(str(tg_updateid))
 
     # Scraper
     while page_number < max_pages+1:
@@ -130,7 +165,7 @@ while True:
             request = urllib.request.Request(site, headers=header)
             src = urllib.request.urlopen(request).read()
             soup = bs.BeautifulSoup(src, 'lxml')
-            #time.sleep(3)
+            time.sleep(3)
 
             # Get listings
             listings = soup.find_all("article")
@@ -141,7 +176,7 @@ while True:
                     for wanted_item in wanted_articles:
                             deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_item+").*"), class_=re.compile("cept-tt linkPlain space--r-1 space--v-1"))
                             for thread in deals:
-                                    # Check if this deal has been found before
+                                    # Check if this deal has been found before                                    
                                     dealid = articles.attrs["id"]
                                     if dealid in found_deals:
                                             debug("Deal already found " + dealid)
@@ -172,20 +207,14 @@ while True:
 
                                     print("[%s] %s für %s Euro: %s" % (gettime(timestamp), title.replace('€', ''), int(price), proc_link))
                                     if telegram:
-                                            send_message(("%s (%s €): %s" % (title, int(price), proc_link)), 12345)
+                                            send_message(("%s (%s €): %s" % (title, int(price), proc_link)), 199132011) # my chat with the bot
 
                                     # Save deal to prevent duplicate messaging
                                     with open("./found.txt", "a") as found:
                                             found.write(dealid + "\n")
             page_number += 1
-            time.sleep(3)
-
     else:
             # Things to do after every cycle
             page_number = 1
             found_deals = [line.rstrip('\n') for line in open ("./found.txt")]
             time.sleep(sleep_time)
-
-# Debug only
-#with open('temp.txt', 'w') as file_:
-#    file_.write(str(out2)) #encode("utf-8")
