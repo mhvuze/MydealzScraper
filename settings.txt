@@ -1,6 +1,7 @@
 debug_mode=0
 short_url=1
 max_pages=9
-sleep_time=300
+sleep_time=270
 telegram=0
 tg_token="yourbottoken"
+tg_timeout=30
