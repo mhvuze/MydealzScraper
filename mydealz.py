@@ -11,6 +11,7 @@ copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,25 +25,30 @@ import bs4 as bs
 import datetime
 import re
 import sys
+import time
 import urllib.request
 from colorama import init, Fore, Back, Style
+from pyshorteners import Shortener
 
 # Basic stuff
 init(autoreset=True) # Colorama
 debug_mode = 1
 max_pages = 10
 page_number = 1
+short_url = True
+shortener = Shortener('Isgd')
+sleep_time = 5
 
 # Wanted
-wanted_articles="Apple"
+wanted_articles="PlayStation"
 print("Suche nach Deals für:", wanted_articles) # adapt later for list from file
 print("---------------")
 
 # Debug mode
 def debug(text):
-	if debug_mode:
-		print(Fore.YELLOW + "DEBUG: " + text)
-	return 0
+        if debug_mode:
+                print(Fore.YELLOW + "DEBUG: " + text)
+        return 0
 
 # Unix time handler
 def gettime(unix):
@@ -50,46 +56,54 @@ def gettime(unix):
         return time
 
 # Main
-while page_number < max_pages+1:
+while True:     
+        while page_number < max_pages+1:
 
-    debug("Scraping page " + str(page_number))
-    
-    # Request settings
-    site = "https://www.mydealz.de/deals-new?page="+str(page_number)
-    header = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:50.0) Gecko/20100101 Firefox/50.0"}
-    request = urllib.request.Request(site, headers=header)
-    src = urllib.request.urlopen(request).read()
-    soup = bs.BeautifulSoup(src, 'lxml')
-
-    # Get listings
-    listings = soup.find_all("article")
-    if listings is None:
-        print("Keine Listings gefunden. Seite geändert?")
-
-    for articles in listings:
-        deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_articles+").*"), class_=re.compile("cept-tt linkPlain space--r-1 space--v-1"))
-        for thread in deals:
-            title = thread.string # text also works
-            link = thread.get("href")
-
-            # Fetch and convert time
-            timestamp = thread.parent.parent.parent.find(class_=re.compile("mute--text overflow--wrap-off space--h-2")).attrs['datetime']
+            debug("Scraping page " + str(page_number))
             
-            # Try to fetch price (may fail for freebies)
-            try:
-                pricestr = thread.parent.parent.parent.find(class_=re.compile("thread-price")).string.strip()
-            except:
-                pricestr="0"
+            # Request settings
+            site = "https://www.mydealz.de/deals-new?page="+str(page_number)
+            header = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:50.0) Gecko/20100101 Firefox/50.0"}
+            request = urllib.request.Request(site, headers=header)
+            src = urllib.request.urlopen(request).read()
+            soup = bs.BeautifulSoup(src, 'lxml')
 
-            # Replace Euro sign for processing
-            if("€" in pricestr):
-                    price = float(pricestr.replace('€', '').replace('.', '').replace(',', '.'))
-            else:
-                    price = 0
+            # Get listings
+            listings = soup.find_all("article")
+            if listings is None:
+                print("Keine Listings gefunden. Seite geändert?")
 
-            print("[%s] %s für %s Euro: %s" % (gettime(timestamp), title.replace('€', ''), int(price), link))
+            for articles in listings:
+                deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_articles+").*"), class_=re.compile("cept-tt linkPlain space--r-1 space--v-1"))
+                for thread in deals:
+                    title = thread.string # text also works
+                    timestamp = thread.parent.parent.parent.find(class_=re.compile("mute--text overflow--wrap-off space--h-2")).attrs['datetime']
+
+                    # Fetch and shorten URL
+                    link = thread.get("href")
+                    if short_url:
+                        link = shortener.short(link)
+
+                    # Try to fetch price (may fail for freebies)
+                    try:
+                        pricestr = thread.parent.parent.parent.find(class_=re.compile("thread-price")).string.strip()
+                    except:
+                        pricestr="0"
+
+                    # Replace Euro sign for processing
+                    if("€" in pricestr):
+                        price = float(pricestr.replace('€', '').replace('.', '').replace(',', '.'))
+                    else:
+                        price = 0
+
+                    print("[%s] %s für %s Euro: %s" % (gettime(timestamp), title.replace('€', ''), int(price), link))
             
-    page_number += 1
+            page_number += 1
+            
+        else:
+            # Things to do after every cycle
+            page_number = 1
+            time.sleep(sleep_time)
 
 # Debug only
 #with open('temp.txt', 'w') as file_:
