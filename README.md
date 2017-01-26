@@ -1,5 +1,5 @@
-# MydealzScrapper
-Scrapper for mydealz.de. Not affiliated with MyDealz in any way. Uses parts from [mydealz_alert](https://github.com/pfannkuchengesicht/mydealz_alert/).
+# MydealzScraper
+Scraper for mydealz.de. Not affiliated with MyDealz in any way. Uses parts from [mydealz_alert](https://github.com/pfannkuchengesicht/mydealz_alert/).
 
 ## Requirements
 Install the following libraries to use this script:
