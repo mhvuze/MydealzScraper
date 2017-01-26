@@ -5,6 +5,7 @@ Scraper for mydealz.de that also offers bot functionalities for Telegram. Not af
 Install the following libraries to use this script:
 * bs4
 * colorama
+* emoji
 * maybe more that are not part of Python by default
 
 ## Usage
@@ -13,9 +14,10 @@ You can control the following settings in `settings.txt`:
 * short_url: Enable/disable short urls for deal messages
 * max_pages: Set amount of pages that should be scraped per cycle (depending on sleep time, I recommend 1 or 2)
 * sleep_time: Set time to sleep after each cycle
-* telegram: Enable/disable telegram messages for new deals
-* tg_token: Set token of your telegram bot
-* tg_timeout: Set timeout for telegram command listening before continuing cycle
+* telegram: Enable/disable Telegram messages for new deals
+* tg_token: Set token of your Telegram bot
+* tg_timeout: Set timeout for Telegram command listening before continuing cycle
+* tg_cid: Set recipient chat id on Telegram
 
 You can use the following commands on Telegram:
 * /add <item>: Add item to list of wanted products
