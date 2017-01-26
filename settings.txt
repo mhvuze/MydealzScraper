@@ -5,3 +5,4 @@ sleep_time=270
 telegram=0
 tg_token="yourbottoken"
 tg_timeout=30
+tg_cid=1234567890
