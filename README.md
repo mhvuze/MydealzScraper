@@ -15,6 +15,7 @@ You can control the following settings in `settings.txt`:
 * sleep_time: Set time to sleep after each cycle
 * telegram: Enable/disable telegram messages for new deals
 * tg_token: Set token of your telegram bot
+* tg_timeout: Set timeout for telegram command listening before continuing cycle
 
 You can use the following commands on Telegram:
 * /add <item>: Add item to list of wanted products
