@@ -23,9 +23,12 @@ SOFTWARE.
 
 import bs4 as bs
 import datetime
+import json
 import re
+import requests
 import sys
 import time
+import urllib.parse
 import urllib.request
 from colorama import init, Fore, Back, Style
 from pyshorteners import Shortener
@@ -33,9 +36,11 @@ from pyshorteners import Shortener
 # Basic stuff
 init(autoreset=True) # Colorama
 shortener = Shortener('Isgd')
-page_number = 1
+page_number = 12
 debug_mode = 0
 short_url = 0
+telegram = 0
+tg_updateid = None
 
 # Get settings from file
 settings = {}
@@ -44,8 +49,12 @@ if settings["debug_mode"]:
         debug_mode = 1
 if settings["short_url"]:
         short_url = 1
+if settings["telegram"]:
+        telegram = 1
 max_pages = settings["max_pages"]
 sleep_time = settings["sleep_time"]
+tg_token = settings["tg_token"]
+tg_url = "https://api.telegram.org/bot{}/".format(tg_token)
 
 # Get already found deals from file
 found_deals = [line.rstrip('\n') for line in open ("./found.txt")]
@@ -67,11 +76,54 @@ def gettime(unix):
         time = datetime.datetime.fromtimestamp(int(unix)).strftime('%Y-%m-%d %H:%M:%S')
         return time
 
+# Telegram functions
+# from: https://www.codementor.io/garethdwyer/building-a-telegram-bot-using-python-part-1-goi5fncay
+def get_url(url):
+        response = requests.get(url)
+        content = response.content.decode("utf-8")
+        return content
+
+def get_json_from_url(url):
+        content = get_url(url)
+        js = json.loads(content)
+        return js
+
+def get_updates(offset=None):
+        url = tg_url + "getUpdates?timeout=100"
+        if offset:
+            url += "&offset={}".format(offset)
+        js = get_json_from_url(url)
+        return js
+
+def get_last_update_id(updates):
+    update_ids = []
+    for update in updates["result"]:
+        update_ids.append(int(update["update_id"]))
+    return max(update_ids)
+
+def get_last_chat_id_and_text(updates):
+        num_updates = len(updates["result"])
+        last_update = num_updates - 1
+        text = updates["result"][last_update]["message"]["text"]
+        chat_id = updates["result"][last_update]["message"]["chat"]["id"]
+        return (text, chat_id)
+
+def send_message(text, chat_id):
+        text = urllib.parse.quote_plus(text)
+        url = tg_url + "sendMessage?text={}&chat_id={}&disable_web_page_preview=true".format(text, chat_id)
+        get_url(url)
+
 # Main
-while True:     
-        while page_number < max_pages+1:
+while True:
+    # Check Telegram for commands
+    #updates = get_updates(tg_updateid)
+    #if len(updates["result"]) > 0:
+    #        tg_updateid = get_last_update_id(updates) + 1
+
+    # Scraper
+    while page_number < max_pages+1:
             debug("Scraping page " + str(page_number))
-            
+
             # Request settings
             site = "https://www.mydealz.de/deals-new?page="+str(page_number)
             header = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:50.0) Gecko/20100101 Firefox/50.0"}
@@ -83,50 +135,52 @@ while True:
             # Get listings
             listings = soup.find_all("article")
             if listings is None:
-                print("Keine Listings gefunden. Seite geändert?")
+                    print("Keine Listings gefunden. Seite geändert?")
 
             for articles in listings:
-                for wanted_item in wanted_articles:
-                    deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_item+").*"), class_=re.compile("cept-tt linkPlain space--r-1 space--v-1"))
-                    for thread in deals:
-                        # Check if this deal has been found before
-                        dealid = articles.attrs["id"]
-                        if dealid in found_deals:
-                            debug("Deal already found " + dealid)
-                            break
+                    for wanted_item in wanted_articles:
+                            deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_item+").*"), class_=re.compile("cept-tt linkPlain space--r-1 space--v-1"))
+                            for thread in deals:
+                                    # Check if this deal has been found before
+                                    dealid = articles.attrs["id"]
+                                    if dealid in found_deals:
+                                            debug("Deal already found " + dealid)
+                                            break
 
-                        # Get deal info
-                        title = thread.string
-                        timestamp = thread.parent.parent.parent.find(class_=re.compile("mute--text overflow--wrap-off space--h-2")).attrs['datetime']
+                                    # Get deal info
+                                    title = thread.string
+                                    timestamp = thread.parent.parent.parent.find(class_=re.compile("mute--text overflow--wrap-off space--h-2")).attrs['datetime']
 
-                        # Fetch and shorten URL
-                        link = thread.get("href")
-                        if short_url:
-                            proc_link = shortener.short(link)
-                        else:
-                            proc_link = link
+                                    # Fetch and shorten URL
+                                    link = thread.get("href")
+                                    if short_url:
+                                            proc_link = shortener.short(link)
+                                    else:
+                                            proc_link = link
 
-                        # Try to fetch price (may fail for freebies)
-                        try:
-                            pricestr = thread.parent.parent.parent.find(class_=re.compile("thread-price")).string.strip()
-                        except:
-                            pricestr = "0"
+                                    # Try to fetch price (may fail for freebies)
+                                    try:
+                                            pricestr = thread.parent.parent.parent.find(class_=re.compile("thread-price")).string.strip()
+                                    except:
+                                            pricestr = "0"
 
-                        # Replace Euro sign for processing
-                        if("€" in pricestr):
-                            price = float(pricestr.replace('€', '').replace('.', '').replace(',', '.'))
-                        else:
-                            price = 0
+                                    # Replace Euro sign for processing
+                                    if("€" in pricestr):
+                                            price = float(pricestr.replace('€', '').replace('.', '').replace(',', '.'))
+                                    else:
+                                            price = 0
 
-                        print("[%s] %s für %s Euro: %s" % (gettime(timestamp), title.replace('€', ''), int(price), proc_link))
+                                    print("[%s] %s für %s Euro: %s" % (gettime(timestamp), title.replace('€', ''), int(price), proc_link))
+                                    if telegram:
+                                            send_message(("%s (%s €): %s" % (title, int(price), proc_link)), 12345)
 
-                        # Save deal to prevent duplicate messaging
-                        with open("./found.txt", "a") as found:
-                                found.write(dealid + "\n")
+                                    # Save deal to prevent duplicate messaging
+                                    with open("./found.txt", "a") as found:
+                                            found.write(dealid + "\n")
             page_number += 1
             time.sleep(3)
-            
-        else:
+
+    else:
             # Things to do after every cycle
             page_number = 1
             found_deals = [line.rstrip('\n') for line in open ("./found.txt")]
