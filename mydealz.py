@@ -41,6 +41,9 @@ debug_mode = 0
 short_url = 0
 telegram = 0
 tg_updateid = None
+tg_timeout = 60
+global header
+header = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:50.0) Gecko/20100101 Firefox/50.0"}
 
 
 # Get settings from file
@@ -56,6 +59,7 @@ max_pages = settings["max_pages"]
 sleep_time = settings["sleep_time"]
 tg_token = settings["tg_token"]
 tg_url = "https://api.telegram.org/bot{}/".format(tg_token)
+tg_timeout = settings["tg_timeout"]
 
 # Debug mode
 def debug(text):
@@ -98,7 +102,7 @@ def get_json_from_url(url):
         return js
 
 def get_updates(offset=None):
-        url = tg_url + "getUpdates?timeout=100" # added wait time between cycles
+        url = tg_url + "getUpdates?timeout=" + str(tg_timeout) # added wait time between cycles
         if offset:
             url += "&offset={}".format(offset)
         js = get_json_from_url(url)
@@ -143,6 +147,7 @@ def process_updates(updates):
                         send_message("Hi! Ich bin noch da, keine Sorge.", chat)
 
 # Main
+debug("Total cycle sleep time: " + str(sleep_time + tg_timeout) + "s")
 get_wanted()
 get_found()
 
@@ -155,17 +160,49 @@ while True:
     with open("tg_update.txt", "w") as id:
         id.write(str(tg_updateid))
 
-    # Scraper
+    # Scraper Freebies
+    debug("Scraping freebies")
+    site = "https://www.mydealz.de/freebies-new?page=1"
+    request = urllib.request.Request(site, headers=header)
+    src = urllib.request.urlopen(request).read()
+    soup = bs.BeautifulSoup(src, 'lxml')
+    time.sleep(3)
+    debug("Finished request")
+    listings = soup.find_all("article")
+    if listings is None:
+            print("Keine Listings gefunden. Seite geändert?")
+    for articles in listings:
+            deals = articles.find_all("a", class_=re.compile("cept-tt linkPlain space--r-1 space--v-1"))
+            for thread in deals:                                   
+                    dealid = articles.attrs["id"]
+                    if dealid in found_deals:
+                            debug("Deal already found " + dealid)
+                            break
+                    title = thread.string
+                    timestamp = thread.parent.parent.parent.find(class_=re.compile("mute--text overflow--wrap-off space--h-2")).attrs['datetime']
+                    link = thread.get("href")
+                    if short_url:
+                            proc_link = shortener.short(link)
+                    else:
+                            proc_link = link
+                    print("[%s] %s für umsonst: %s" % (gettime(timestamp), title.replace('€', ''), proc_link))
+                    if telegram:
+                            send_message(("%s: %s" % (title, proc_link)), 1234) # my chat with the bot
+                    with open("./found.txt", "a") as found:
+                            found.write(dealid + "\n")
+                    time.sleep(2) # give short url service some rest
+
+    # Scraper Wanted
     while page_number < max_pages+1:
             debug("Scraping page " + str(page_number))
 
             # Request settings
-            site = "https://www.mydealz.de/deals-new?page="+str(page_number)
-            header = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:50.0) Gecko/20100101 Firefox/50.0"}
+            site = "https://www.mydealz.de/deals-new?page="+str(page_number)            
             request = urllib.request.Request(site, headers=header)
             src = urllib.request.urlopen(request).read()
             soup = bs.BeautifulSoup(src, 'lxml')
             time.sleep(3)
+            debug("Finished request")
 
             # Get listings
             listings = soup.find_all("article")
@@ -212,9 +249,11 @@ while True:
                                     # Save deal to prevent duplicate messaging
                                     with open("./found.txt", "a") as found:
                                             found.write(dealid + "\n")
+                                    time.sleep(2) # give short url service some rest
             page_number += 1
     else:
             # Things to do after every cycle
             page_number = 1
             found_deals = [line.rstrip('\n') for line in open ("./found.txt")]
+            debug("Now sleeping until next cycle")
             time.sleep(sleep_time)
