@@ -31,7 +31,14 @@ import time
 import urllib.parse
 import urllib.request
 from colorama import init, Fore, Back, Style
+from emoji import emojize
 from pyshorteners import Shortener
+
+# Emoji definitions
+wave = emojize(":wave:", use_aliases=True)
+hot = emojize(":fire:", use_aliases=True)
+free = emojize(":free:", use_aliases=True)
+wish = emojize(":star:", use_aliases=True)
 
 # Basic stuff
 init(autoreset=True) # Colorama
@@ -42,9 +49,7 @@ short_url = 0
 telegram = 0
 tg_updateid = None
 tg_timeout = 60
-global header
 header = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:50.0) Gecko/20100101 Firefox/50.0"}
-
 
 # Get settings from file
 settings = {}
@@ -60,6 +65,7 @@ sleep_time = settings["sleep_time"]
 tg_token = settings["tg_token"]
 tg_url = "https://api.telegram.org/bot{}/".format(tg_token)
 tg_timeout = settings["tg_timeout"]
+tg_cid = settings["tg_cid"]
 
 # Debug mode
 def debug(text):
@@ -76,7 +82,7 @@ debug("Last Telegram update id " + str(tg_updateid))
 def get_found():
         global found_deals
         found_deals = [line.rstrip('\n') for line in open ("./found.txt")]
-        print("Bereits gespeicherte Deals:", len(found_deals))
+        #print("Bereits gespeicherte Deals:", len(found_deals))
 
 # Get wanted articles from file
 def get_wanted():
@@ -144,7 +150,7 @@ def process_updates(updates):
                 if "/list" in text:
                         send_message("Suche nach Deals für: " + str(wanted_articles).replace("[", "").replace("]", ""), chat)
                 if "/hello" in text:
-                        send_message("Hi! Ich bin noch da, keine Sorge.", chat)
+                        send_message("Hi! " + wave + " Ich bin noch da, keine Sorge.", chat)
 
 # Main
 debug("Total cycle sleep time: " + str(sleep_time + tg_timeout) + "s")
@@ -185,11 +191,44 @@ while True:
                             proc_link = shortener.short(link)
                     else:
                             proc_link = link
-                    print("[%s] %s für umsonst: %s" % (gettime(timestamp), title.replace('€', ''), proc_link))
+                    print("[%s] %s für umsonst: %s" % (gettime(timestamp), re.sub(r'[^\x00-\x7F]+',' ', title), proc_link))
                     if telegram:
-                            send_message(("%s: %s" % (title, proc_link)), 1234) # my chat with the bot
+                            send_message((free + " %s: %s" % (title, proc_link)), tg_cid)
                     with open("./found.txt", "a") as found:
                             found.write(dealid + "\n")
+                    get_found()
+                    time.sleep(2) # give short url service some rest
+
+    # Scraper Highlights
+    debug("Scraping highlights")
+    site = "https://www.mydealz.de/"
+    request = urllib.request.Request(site, headers=header)
+    src = urllib.request.urlopen(request).read()
+    soup = bs.BeautifulSoup(src, 'lxml')
+    time.sleep(3)
+    debug("Finished request")
+    listings = soup.find_all("article", {"id":re.compile("threadCarousel_.*")})
+    if listings is None:
+            print("Keine Listings gefunden. Seite geändert?")
+    for articles in listings:
+            highlights = articles.find_all("img", class_=re.compile("cept-thread-img thread-image imgFrame-img"))
+            for thread in highlights:                    
+                    dealid = articles.attrs["id"]
+                    if dealid in found_deals:
+                            debug("Deal already found " + dealid)
+                            break
+                    title = thread.attrs['alt']
+                    link = thread.parent.get("href")
+                    if short_url:
+                            proc_link = shortener.short(link)
+                    else:
+                            proc_link = link
+                    print("[HOT] %s: %s" % (re.sub(r'[^\x00-\x7F]+',' ', title), proc_link))
+                    if telegram:
+                            send_message((hot + " %s: %s" % (title, proc_link)), tg_cid)
+                    with open("./found.txt", "a") as found:
+                            found.write(dealid + "\n")
+                    get_found()
                     time.sleep(2) # give short url service some rest
 
     # Scraper Wanted
@@ -242,13 +281,14 @@ while True:
                                     else:
                                             price = 0
 
-                                    print("[%s] %s für %s Euro: %s" % (gettime(timestamp), title.replace('€', ''), int(price), proc_link))
+                                    print("[%s] %s für %s Euro: %s" % (gettime(timestamp), re.sub(r'[^\x00-\x7F]+',' ', title), int(price), proc_link))
                                     if telegram:
-                                            send_message(("%s (%s €): %s" % (title, int(price), proc_link)), 1234) # my chat with the bot
+                                            send_message((wish + " %s (%s €): %s" % (title, int(price), proc_link)), tg_cid)
 
                                     # Save deal to prevent duplicate messaging
                                     with open("./found.txt", "a") as found:
                                             found.write(dealid + "\n")
+                                    get_found()
                                     time.sleep(2) # give short url service some rest
             page_number += 1
     else:
