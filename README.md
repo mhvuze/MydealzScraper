@@ -6,6 +6,8 @@ Install the following libraries to use this script:
 * bs4
 * colorama
 * emoji
+* lxml
+* pyshortener
 * maybe more that are not part of Python by default
 
 ## Usage
@@ -18,12 +20,14 @@ You can control the following settings in `settings.txt`:
 * tg_token: Set token of your Telegram bot
 * tg_timeout: Set timeout for Telegram command listening before continuing cycle
 * tg_cid: Set recipient chat id on Telegram
+* tg_cid2: Set second recipient chat id on Telegram
 
 You can use the following commands on Telegram:
 * /add <item>: Add item to list of wanted products
 * /remove <item>: Remove item from list of wanted products
 * /list: Show list of all wanted products
 * /reset: Reset list of discovered deals
+* /chatid: Reply with Telegram chat id
 * /hello: Ask for life sign without changing anything
 
 ## Example image
