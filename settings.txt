@@ -6,3 +6,4 @@ telegram=0
 tg_token="yourbottoken"
 tg_timeout=30
 tg_cid=1234567890
+tg_cid2=2234567890
