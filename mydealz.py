@@ -93,9 +93,10 @@ def get_found():
 def get_wanted():
         global wanted_articles
         wanted_articles = [line.rstrip('\n') for line in open ("./wanted.txt")]
-        print(Fore.CYAN + "Suche nach Deals für: " + str(wanted_articles).replace("[", "").replace("]", ""))
+        print(Fore.CYAN + "User 1: Suche nach Deals für: " + str(wanted_articles).replace("[", "").replace("]", ""))
         global wanted_articles2
-        wanted_articles = [line.rstrip('\n') for line in open ("./wanted{}.txt".format(tg_cid2))]
+        wanted_articles2 = [line.rstrip('\n') for line in open ("./wanted{}.txt".format(tg_cid2))]
+        print(Fore.CYAN + "User 2: Suche nach Deals für: " + str(wanted_articles2).replace("[", "").replace("]", ""))
 
 # Unix time handler
 def gettime(unix):
@@ -146,22 +147,35 @@ def process_updates(updates):
                         send_message("Schlagwort wurde der Liste hinzugefügt.", chat)
                         get_wanted()
                 if "/remove" in text:
-                        with open("./wanted.txt", "r") as list:
+                        if chat == tg_cid:
+                                addon = ""
+                        else:
+                                addon = chat
+                        with open("./wanted{}.txt".format(addon), "r") as list:
                                 lines = list.readlines()
-                        with open("./wanted.txt", "w") as remove:
+                        with open("./wanted{}.txt".format(addon), "w") as remove:
                                 for line in lines:
                                         if line.lower() != (text.replace("/remove ", "") + "\n").lower():
                                                 remove.write(line)
                         send_message("Schlagwort wurde von der Liste entfernt.", chat)
                         get_wanted()
                 if "/reset" in text:
-                        open("./found.txt", "w").close()
+                        if chat == tg_cid:
+                                addon = ""
+                        else:
+                                addon = chat
+                        open("./found{}.txt".format(addon), "w").close()
                         send_message("Liste der gefundenen Deals wurde geleert.", chat)
                         get_found()
                 if "/list" in text:
-                        send_message("Suche nach Deals für: " + str(wanted_articles).replace("[", "").replace("]", ""), chat)
+                        if chat == tg_cid:
+                                send_message("Suche nach Deals für: " + str(wanted_articles).replace("[", "").replace("]", ""), chat)
+                        else:
+                                send_message("Suche nach Deals für: " + str(wanted_articles2).replace("[", "").replace("]", ""), chat)
                 if "/hello" in text:
                         send_message("Hi! " + wave + " Ich bin noch da, keine Sorge.", chat)
+                if "/chatid" in text:
+                        send_message("Hi! " + wave + " Die ID für diesen Chat lautet: " + str(chat), chat)
 
 # Main
 debug("Total cycle sleep time: " + str(sleep_time + tg_timeout) + "s")
@@ -181,7 +195,7 @@ while True:
     tg_latest = False
     while tg_latest == False:
             try:
-                    updates = get_updates(tg_updateid)    
+                    updates = get_updates(tg_updateid)
                     if len(updates["result"]) > 0:
                             tg_updateid = get_last_update_id(updates) + 1
                             process_updates(updates)
@@ -226,7 +240,7 @@ while True:
                             print("[%s] %s für umsonst: %s" % (gettime(timestamp), re.sub(r'[^\x00-\x7F]+',' ', title), proc_link))
                             if telegram:
                                     send_message((free + " %s: %s" % (title, proc_link)), tg_cid)
-                                    #send_message((free + " %s: %s" % (title, proc_link)), tg_cid2)
+                                    send_message((free + " %s: %s" % (title, proc_link)), tg_cid2)
                             time.sleep(2) # give short url service some rest
     except:
             e = sys.exc_info()[0]
@@ -265,7 +279,7 @@ while True:
                             print("[HOT] %s: %s" % (re.sub(r'[^\x00-\x7F]+',' ', title), proc_link))
                             if telegram:
                                     send_message((hot + " %s: %s" % (title, proc_link)), tg_cid)
-                                    #send_message((hot + " %s: %s" % (title, proc_link)), tg_cid2)
+                                    send_message((hot + " %s: %s" % (title, proc_link)), tg_cid2)
                             time.sleep(2) # give short url service some rest
     except:            
             e = sys.exc_info()[0]
@@ -292,6 +306,7 @@ while True:
                             print("Keine Listings gefunden. Seite geändert?")
 
                     for articles in listings:
+                            # user 1
                             for wanted_item in wanted_articles:
                                     deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_item+").*"), class_=re.compile("cept-tt linkPlain space--r-1 space--v-1"))
                                     for thread in deals:
@@ -332,6 +347,48 @@ while True:
                                             print("[%s] %s für %s Euro: %s" % (gettime(timestamp), re.sub(r'[^\x00-\x7F]+',' ', title), int(price), proc_link))
                                             if telegram:
                                                     send_message((wish + " %s (%s €): %s" % (title, int(price), proc_link)), tg_cid)
+                                            time.sleep(2) # give short url service some rest
+                            # user 2
+                            for wanted_item in wanted_articles2:
+                                    deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_item+").*"), class_=re.compile("cept-tt linkPlain space--r-1 space--v-1"))
+                                    for thread in deals:
+                                            # Check if this deal has been found before
+                                            dealid = articles.attrs["id"]
+                                            if dealid in found_deals2:
+                                                    debug("Deal already found " + dealid)
+                                                    break
+
+                                            # Get deal info
+                                            title = thread.string
+                                            timestamp = thread.parent.parent.parent.find(class_=re.compile("mute--text overflow--wrap-off space--h-2")).attrs['datetime']
+
+                                            # Fetch and shorten URL
+                                            link = thread.get("href")
+                                            if short_url:
+                                                    proc_link = shortener.short(link)
+                                            else:
+                                                    proc_link = link
+
+                                            # Try to fetch price (may fail for freebies)
+                                            try:
+                                                    pricestr = thread.parent.parent.parent.find(class_=re.compile("thread-price")).string.strip()
+                                            except:
+                                                    pricestr = "0"
+
+                                            # Replace Euro sign for processing
+                                            if("€" in pricestr):
+                                                    price = float(pricestr.replace('€', '').replace('.', '').replace(',', '.'))
+                                            else:
+                                                    price = 0
+
+                                            # Save deal to prevent duplicate messaging
+                                            with open("./found{}.txt".format(tg_cid2), "a") as found:
+                                                    found.write(dealid + "\n")
+                                            get_found()
+
+                                            print("[%s] %s für %s Euro: %s" % (gettime(timestamp), re.sub(r'[^\x00-\x7F]+',' ', title), int(price), proc_link))
+                                            if telegram:
+                                                    send_message((wish + " %s (%s €): %s" % (title, int(price), proc_link)), tg_cid2)
                                             time.sleep(2) # give short url service some rest
                     page_number += 1
             else:
