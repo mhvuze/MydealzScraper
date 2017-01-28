@@ -227,7 +227,11 @@ def mydealz_scraper():
                                     timestamp = thread.parent.parent.parent.find(class_=re.compile("mute--text overflow--wrap-off space--h-2")).attrs['datetime']
                                     link = thread.get("href")
                                     if short_url:
-                                            proc_link = shortener.short(link)
+                                            try:
+                                                    proc_link = shortener.short(link)
+                                            except:
+                                                    print("Shortener-Service nicht erreichbar. Verwende vollen Link.")
+                                                    proc_link = link
                                     else:
                                             proc_link = link
                                     with open("./found.txt", "a") as found:
@@ -265,7 +269,11 @@ def mydealz_scraper():
                                     title = thread.attrs['alt']
                                     link = thread.parent.get("href")
                                     if short_url:
-                                            proc_link = shortener.short(link)
+                                            try:
+                                                    proc_link = shortener.short(link)
+                                            except:
+                                                    print("Shortener-Service nicht erreichbar. Verwende vollen Link.")
+                                                    proc_link = link
                                     else:
                                             proc_link = link
                                     with open("./found.txt", "a") as found:
@@ -360,7 +368,11 @@ def mydealz_scraper():
                                                     # Fetch and shorten URL
                                                     link = thread.get("href")
                                                     if short_url:
-                                                            proc_link = shortener.short(link)
+                                                            try:
+                                                                    proc_link = shortener.short(link)
+                                                            except:
+                                                                    print("Shortener-Service nicht erreichbar. Verwende vollen Link.")
+                                                                    proc_link = link
                                                     else:
                                                             proc_link = link
 
