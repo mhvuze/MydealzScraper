@@ -224,7 +224,7 @@ def mydealz_scraper():
                                             debug("Deal already found " + dealid)
                                             break
                                     title = thread.string
-                                    timestamp = thread.parent.parent.parent.find(class_=re.compile("mute--text overflow--wrap-off space--h-2")).attrs['datetime']
+                                    timestamp = thread.parent.parent.parent.find(class_=re.compile("mute--text cept-time-label overflow--wrap-off space--h-2")).attrs['datetime']
                                     link = thread.get("href")
                                     if short_url:
                                             try:
@@ -321,7 +321,7 @@ def mydealz_scraper():
 
                                                     # Get deal info
                                                     title = thread.string
-                                                    timestamp = thread.parent.parent.parent.find(class_=re.compile("mute--text overflow--wrap-off space--h-2")).attrs['datetime']
+                                                    timestamp = thread.parent.parent.parent.find(class_=re.compile("mute--text cept-time-label overflow--wrap-off space--h-2")).attrs['datetime']
 
                                                     # Fetch and shorten URL
                                                     link = thread.get("href")
