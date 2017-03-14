@@ -32,3 +32,6 @@ You can use the following commands on Telegram:
 
 ## Example image
 ![alt tag](http://i.imgur.com/lqvXopr.png)
+
+## Todo
+* Implement Telegram in a better way, currently the listener just dies at some point, script restart fixes it though
