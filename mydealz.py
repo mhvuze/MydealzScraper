@@ -207,7 +207,7 @@ def mydealz_scraper():
             # Scraper Freebies
             try:
                     debug("Scraping freebies")
-                    site = "https://www.mydealz.de/freebies-new?page=1"
+                    site = "https://www.mydealz.de/gruppe/freebies-new?page=1"
                     request = urllib.request.Request(site, headers=header)
                     src = urllib.request.urlopen(request, timeout=20).read()
                     soup = bs.BeautifulSoup(src, 'lxml')
