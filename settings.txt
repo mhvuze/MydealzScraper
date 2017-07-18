@@ -1,9 +1,7 @@
 debug_mode=0
 short_url=1
-max_pages=2
 sleep_time=270
 telegram=0
 tg_token="yourbottoken"
-tg_timeout=30
 tg_cid=1234567890
 tg_cid2=2234567890
