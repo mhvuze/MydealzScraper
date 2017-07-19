@@ -268,7 +268,7 @@ def mydealz_scraper():
                     deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_item+").*"), class_="cept-tt linkPlain space--r-1 space--v-1")
                     for thread in deals:
                         dealid = articles.attrs["id"]
-                        if dealid in found_deals:
+                        if dealid in found_deals2:
                             debug("Deal already found " + dealid)
                             break
                         title = thread.string
