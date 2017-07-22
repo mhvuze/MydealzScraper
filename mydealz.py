@@ -145,7 +145,12 @@ def list_items(msg):
     bot.send_message(cid, "Suche nach Deals für: " + str(lines).replace("[", "").replace("]", "")) # fix \n
 
 def telegram_bot():
-    bot.polling()
+    while True:
+        try:
+            bot.polling(none_stop=True)
+        except:
+            debug(traceback.format_exc())
+            time.sleep(5)
 
 # MyDealz scraper
 def mydealz_scraper():
@@ -176,13 +181,15 @@ def mydealz_scraper():
                     else:
                         proc_link = link
 
-                    with open("./found_{}.txt".format(tg_cid), "a") as found:
-                        found.write(dealid + "\n")
-                    get_found()
                     print("[HOT] %s: %s" % (re.sub(r'[^\x00-\x7F]+',' ', title), proc_link))
                     if telegram:
                         bot.send_message(tg_cid, hot + " %s: %s" % (title, proc_link), disable_web_page_preview=True)
+                        time.sleep(5)
                         bot.send_message(tg_cid2, hot + " %s: %s" % (title, proc_link), disable_web_page_preview=True)
+
+                    with open("./found_{}.txt".format(tg_cid), "a") as found:
+                        found.write(dealid + "\n")
+                    get_found()
                     time.sleep(4)
             debug("Scraping highlights complete")
         except:
@@ -201,7 +208,7 @@ def mydealz_scraper():
                 print("Keine Listings gefunden. Seite geändert?")
 
             for articles in listings:
-                freebies = articles.find_all("a", class_="cept-tt linkPlain space--r-1 space--v-1")
+                freebies = articles.find_all("a", class_="cept-tt thread-link linkPlain space--r-1 space--v-1")
                 for thread in freebies:                    
                     dealid = articles.attrs["id"]
                     if dealid in found_deals:
@@ -215,13 +222,15 @@ def mydealz_scraper():
                     else:
                         proc_link = link
 
-                    with open("./found_{}.txt".format(tg_cid), "a") as found:
-                        found.write(dealid + "\n")
-                    get_found()
                     print("[FREE] %s: %s" % (re.sub(r'[^\x00-\x7F]+',' ', title), proc_link))
                     if telegram:
                         bot.send_message(tg_cid, free + " %s: %s" % (title, proc_link), disable_web_page_preview=True)
+                        time.sleep(5)
                         bot.send_message(tg_cid2, free + " %s: %s" % (title, proc_link), disable_web_page_preview=True)
+
+                    with open("./found_{}.txt".format(tg_cid), "a") as found:
+                        found.write(dealid + "\n")
+                    get_found()
                     time.sleep(4)
             debug("Scraping freebies complete")
         except:
@@ -231,7 +240,7 @@ def mydealz_scraper():
         # Wanted scraper
         try:
             debug("Scraping for wanted items")
-            site = requests.get("https://www.mydealz.de/deals-new?page=1", headers=header, timeout=20)
+            site = requests.get("https://www.mydealz.de/new?page=1", headers=header, timeout=20)
             soup = bs(site.content, 'lxml')
             debug("Request completed")
 
@@ -242,7 +251,7 @@ def mydealz_scraper():
             for articles in listings:
                 # User 1
                 for wanted_item in wanted_articles:
-                    deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_item+").*"), class_="cept-tt linkPlain space--r-1 space--v-1")
+                    deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_item+").*"), class_="cept-tt thread-link linkPlain space--r-1 space--v-1")
                     for thread in deals:
                         dealid = articles.attrs["id"]
                         if dealid in found_deals:
@@ -256,12 +265,13 @@ def mydealz_scraper():
                         else:
                             proc_link = link
 
-                        with open("./found_{}.txt".format(tg_cid), "a") as found:
-                            found.write(dealid + "\n")
-                        get_found()
                         print("[WANT] %s: %s" % (re.sub(r'[^\x00-\x7F]+',' ', title), proc_link))
                         if telegram:
                             bot.send_message(tg_cid, wish + " %s: %s" % (title, proc_link), disable_web_page_preview=True)
+
+                        with open("./found_{}.txt".format(tg_cid), "a") as found:
+                            found.write(dealid + "\n")
+                        get_found()
                         time.sleep(4)
                 # User 2
                 for wanted_item in wanted_articles2:
@@ -279,13 +289,14 @@ def mydealz_scraper():
                         else:
                             proc_link = link
 
-                        with open("./found_{}.txt".format(tg_cid2), "a") as found:
-                            found.write(dealid + "\n")
-                        get_found()
                         print("[WANT] %s: %s" % (re.sub(r'[^\x00-\x7F]+',' ', title), proc_link))
                         if telegram:
                             bot.send_message(tg_cid2, wish + " %s: %s" % (title, proc_link), disable_web_page_preview=True)
-                        time.sleep(4)                    
+                            
+                        with open("./found_{}.txt".format(tg_cid2), "a") as found:
+                            found.write(dealid + "\n")
+                        get_found()
+                        time.sleep(4)
             debug("Scraping for wanted items complete")
         except:
             debug(traceback.format_exc())
