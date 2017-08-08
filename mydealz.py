@@ -47,7 +47,7 @@ wish = emojize(":star:", use_aliases=True)
 # Basic stuff
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 init(autoreset=True) # Colorama
-shortener = Shortener('Isgd')
+shortener = Shortener("Isgd")
 header = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0"}
 
 # Get settings from file
@@ -84,15 +84,15 @@ def debug(text):
 # Get already found deals from file
 def get_found():
     global found_deals; global found_deals2
-    found_deals = [line.rstrip('\n') for line in open ("./found_{}.txt".format(tg_cid))]
-    found_deals2 = [line.rstrip('\n') for line in open ("./found_{}.txt".format(tg_cid2))]
+    found_deals = [line.rstrip("\n") for line in open ("./found_{}.txt".format(tg_cid))]
+    found_deals2 = [line.rstrip("\n") for line in open ("./found_{}.txt".format(tg_cid2))]
 
 # Get wanted articles from file
 def get_wanted():
     global wanted_articles; global wanted_articles2
-    wanted_articles = [line.rstrip('\n') for line in open ("./wanted_{}.txt".format(tg_cid))]
+    wanted_articles = [line.rstrip("\n") for line in open ("./wanted_{}.txt".format(tg_cid))]
     print(Fore.CYAN + "User 1: Suche nach Deals für: " + str(wanted_articles).replace("[", "").replace("]", ""))
-    wanted_articles2 = [line.rstrip('\n') for line in open ("./wanted_{}.txt".format(tg_cid2))]
+    wanted_articles2 = [line.rstrip("\n") for line in open ("./wanted_{}.txt".format(tg_cid2))]
     print(Fore.CYAN + "User 2: Suche nach Deals für: " + str(wanted_articles2).replace("[", "").replace("]", ""))
 
 # Link processing
@@ -107,19 +107,19 @@ def process_link(link):
 # Telegram bot
 bot = telebot.TeleBot(tg_token)
 
-@bot.message_handler(commands=['hello'])
+@bot.message_handler(commands=["hello"])
 def hello(msg):
     cid = msg.chat.id
     bot.send_message(cid, "Hi! " + wave + " Ich bin noch da, keine Sorge.")
 
-@bot.message_handler(commands=['add'])
+@bot.message_handler(commands=["add"])
 def add_item(msg):
     cid = msg.chat.id
     with open("./wanted_{}.txt".format(cid), "a") as f:
         f.write(msg.text.replace("/add ", "") + "\n")
     bot.send_message(cid, "Schlagwort wurde der Liste hinzugefügt.")
 
-@bot.message_handler(commands=['remove'])
+@bot.message_handler(commands=["remove"])
 def remove_item(msg):
     cid = msg.chat.id
     with open("./wanted_{}.txt".format(cid), "r") as list:
@@ -130,14 +130,14 @@ def remove_item(msg):
                 remove.write(line)
     bot.send_message(cid, "Schlagwort wurde von der Liste entfernt.")
 
-@bot.message_handler(commands=['reset'])
+@bot.message_handler(commands=["reset"])
 def reset_found(msg):
     cid = msg.chat.id
     open("./found_{}.txt".format(cid), "w").close()
     bot.send_message(cid, "Liste der gefundenen Deals wurde geleert.")
     get_found()
 
-@bot.message_handler(commands=['list'])
+@bot.message_handler(commands=["list"])
 def list_items(msg):
     cid = msg.chat.id
     with open("./wanted_{}.txt".format(cid), "r") as list:
@@ -159,29 +159,31 @@ def mydealz_scraper():
         try:
             debug("Scraping highlights")
             site = requests.get("https://www.mydealz.de/", headers=header, timeout=20)            
-            soup = bs(site.content, 'lxml')
+            soup = bs(site.content, "lxml")
             debug("Request completed")
 
-            listings = soup.find_all("article", {"id":re.compile("threadCarousel_.*")})
+            listings = soup.find_all("div", class_="tGrid width--all-12")
+            
             if listings is None:
                 print("Keine Listings gefunden. Seite geändert?")
             
             for articles in listings:
-                highlights = articles.find_all("img", class_="cept-thread-img thread-image imgFrame-img")
+                highlights = articles.find_all("a", class_="linkPlain space--v-1")
                 for thread in highlights:
-                    dealid = (articles.attrs["id"]).replace("Carousel", "")
+                    dealid = thread.get("href")
                     if dealid in found_deals:
                         debug("Deal already found " + dealid)
                         break
-                    title = thread.attrs['alt']
-                    link = thread.parent.get("href")
+
+                    title = thread.string.strip()
+                    link = dealid
 
                     if short_url:
                         proc_link = process_link(link)
                     else:
                         proc_link = link
 
-                    print("[HOT] %s: %s" % (re.sub(r'[^\x00-\x7F]+',' ', title), proc_link))
+                    print("[HOT] %s: %s" % (re.sub(r"[^\x00-\x7F]+"," ", title), proc_link))
                     if telegram:
                         bot.send_message(tg_cid, hot + " %s: %s" % (title, proc_link), disable_web_page_preview=True)
                         time.sleep(5)
@@ -200,7 +202,7 @@ def mydealz_scraper():
         try:
             debug("Scraping freebies")
             site = requests.get("https://www.mydealz.de/gruppe/freebies-new?page=1", headers=header, timeout=20)
-            soup = bs(site.content, 'lxml')
+            soup = bs(site.content, "lxml")
             debug("Request completed")
 
             listings = soup.find_all("article", {"id":re.compile("thread_.*")})
@@ -214,7 +216,7 @@ def mydealz_scraper():
                     if dealid in found_deals:
                         debug("Deal already found " + dealid)
                         break
-                    title = thread.string
+                    title = thread.string.strip()
                     link = thread.get("href")
 
                     if short_url:
@@ -222,7 +224,7 @@ def mydealz_scraper():
                     else:
                         proc_link = link
 
-                    print("[FREE] %s: %s" % (re.sub(r'[^\x00-\x7F]+',' ', title), proc_link))
+                    print("[FREE] %s: %s" % (re.sub(r"[^\x00-\x7F]+"," ", title), proc_link))
                     if telegram:
                         bot.send_message(tg_cid, free + " %s: %s" % (title, proc_link), disable_web_page_preview=True)
                         time.sleep(5)
@@ -241,7 +243,7 @@ def mydealz_scraper():
         try:
             debug("Scraping for wanted items")
             site = requests.get("https://www.mydealz.de/new?page=1", headers=header, timeout=20)
-            soup = bs(site.content, 'lxml')
+            soup = bs(site.content, "lxml")
             debug("Request completed")
 
             listings = soup.find_all("article", {"id":re.compile("thread_.*")})
@@ -257,7 +259,7 @@ def mydealz_scraper():
                         if dealid in found_deals:
                             debug("Deal already found " + dealid)
                             break
-                        title = thread.string
+                        title = thread.string.strip()
                         link = thread.get("href")
 
                         if short_url:
@@ -265,7 +267,7 @@ def mydealz_scraper():
                         else:
                             proc_link = link
 
-                        print("[WANT] %s: %s" % (re.sub(r'[^\x00-\x7F]+',' ', title), proc_link))
+                        print("[WANT] %s: %s" % (re.sub(r"[^\x00-\x7F]+"," ", title), proc_link))
                         if telegram:
                             bot.send_message(tg_cid, wish + " %s: %s" % (title, proc_link), disable_web_page_preview=True)
 
@@ -289,7 +291,7 @@ def mydealz_scraper():
                         else:
                             proc_link = link
 
-                        print("[WANT] %s: %s" % (re.sub(r'[^\x00-\x7F]+',' ', title), proc_link))
+                        print("[WANT] %s: %s" % (re.sub(r"[^\x00-\x7F]+"," ", title), proc_link))
                         if telegram:
                             bot.send_message(tg_cid2, wish + " %s: %s" % (title, proc_link), disable_web_page_preview=True)
                             
@@ -304,7 +306,7 @@ def mydealz_scraper():
         debug("Now sleeping until next cycle")
         time.sleep(sleep_time)
 
-if __name__=='__main__':
+if __name__=="__main__":
     # Check for required files
     with suppress(Exception):
         open("./wanted_{}.txt".format(tg_cid), "x")
