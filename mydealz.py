@@ -210,7 +210,7 @@ def mydealz_scraper():
                 print("Keine Listings gefunden. Seite geändert?")
 
             for articles in listings:
-                freebies = articles.find_all("a", class_="cept-tt thread-link linkPlain space--r-1 space--v-1")
+                freebies = articles.find_all("a", class_="cept-tt thread-link linkPlain space--r-1 size--all-s size--fromW2-m")
                 for thread in freebies:                    
                     dealid = articles.attrs["id"]
                     if dealid in found_deals:
@@ -253,7 +253,7 @@ def mydealz_scraper():
             for articles in listings:
                 # User 1
                 for wanted_item in wanted_articles:
-                    deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_item+").*"), class_="cept-tt thread-link linkPlain space--r-1 space--v-1")
+                    deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_item+").*"), class_="cept-tt thread-link linkPlain space--r-1 size--all-s size--fromW2-m")
                     for thread in deals:
                         dealid = articles.attrs["id"]
                         if dealid in found_deals:
