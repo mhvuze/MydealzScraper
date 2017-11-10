@@ -1,5 +1,5 @@
 # MydealzScraper
-Scraper for mydealz.de that also offers bot functionalities for Telegram. Not affiliated with MyDealz in any way. Uses parts from [mydealz_alert](https://github.com/pfannkuchengesicht/mydealz_alert/).
+Scraper for mydealz.de that also offers bot functionalities for Telegram. Not affiliated with MyDealz in any way. Inspired by [mydealz_alert](https://github.com/pfannkuchengesicht/mydealz_alert/).
 
 ## Requirements
 Install the following libraries to use this script:
@@ -28,4 +28,4 @@ You can use the following commands on Telegram:
 * /hello: Ask for life sign without changing anything
 
 ## Example image
-![alt tag](http://i.imgur.com/lqvXopr.png)
+![alt tag](https://i.imgur.com/84OVjaW.jpg)
