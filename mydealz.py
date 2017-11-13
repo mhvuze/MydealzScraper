@@ -165,7 +165,7 @@ def scrape(url, type):
             print("Keine Listings gefunden. Seite geändert?")
 
         for thread in listings:
-            info = thread.find("a", class_="cept-tt thread-link linkPlain space--r-1 size--all-s size--fromW2-m")
+            info = thread.find("a", class_="cept-tt thread-link linkPlain space--r-1 size--all-s size--fromW3-m")
             dealid = thread.attrs["id"]
             if dealid in found_deals:
                 debug("Deal already found " + dealid)
@@ -200,7 +200,7 @@ def scrape(url, type):
 # User wanted scraping routine
 def scrape_wanted(tg_cid, found_deals, articles, wanted_articles):
     for wanted_item in wanted_articles:
-        deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_item+").*"), class_="cept-tt thread-link linkPlain space--r-1 size--all-s size--fromW2-m")
+        deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_item+").*"), class_="cept-tt thread-link linkPlain space--r-1 size--all-s size--fromW3-m")
         for thread in deals:
             dealid = articles.attrs["id"]
             if dealid in found_deals:
@@ -227,7 +227,7 @@ def scrape_wanted(tg_cid, found_deals, articles, wanted_articles):
 def mydealz_scraper():
     while True:
         # Hot deals scraper
-        scrape("https://www.mydealz.de/deals?page=1", hot)
+        scrape("https://www.mydealz.de/hot?page=1", hot)
         
         # Freebie scraper
         scrape("https://www.mydealz.de/gruppe/freebies-new?page=1", free)
