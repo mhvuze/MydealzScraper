@@ -208,7 +208,7 @@ def scrape_wanted(tg_cid, found_deals, articles, wanted_articles):
                 debug("Deal already found " + dealid)
                 continue
             title = thread.string.strip()
-            link = "https://ww.mydealz.de" + info.get("href")
+            link = "https://ww.mydealz.de" + thread.get("href")
 
             if short_url:
                 proc_link = process_link(link)
