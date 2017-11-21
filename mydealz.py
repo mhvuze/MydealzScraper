@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# coding=utf-8
 
 '''
 The MIT License (MIT)
@@ -171,7 +172,7 @@ def scrape(url, type):
                 debug("Deal already found " + dealid)
                 continue
             title = info.string.strip()
-            link = info.get("href")
+            link = "https://ww.mydealz.de" + info.get("href")
 
             if short_url:
                 proc_link = process_link(link)
@@ -207,7 +208,7 @@ def scrape_wanted(tg_cid, found_deals, articles, wanted_articles):
                 debug("Deal already found " + dealid)
                 continue
             title = thread.string.strip()
-            link = thread.get("href")
+            link = "https://ww.mydealz.de" + info.get("href")
 
             if short_url:
                 proc_link = process_link(link)
