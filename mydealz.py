@@ -77,9 +77,9 @@ def get_settings():
 get_settings()
 
 # Debug mode
-def debug(text):
+def debug(text):	
     if debug_mode:
-        print(Fore.YELLOW + "DEBUG: " + text)
+    	print(Fore.YELLOW + "DEBUG: " + text)
     return 0
 
 # Get already found deals from file
@@ -92,9 +92,9 @@ def get_found():
 def get_wanted():
     global wanted_articles; global wanted_articles2
     wanted_articles = [line.rstrip("\n") for line in open ("./wanted_{}.txt".format(tg_cid))]
-    print(Fore.CYAN + "User 1: Suche nach Deals für: " + str(wanted_articles).replace("[", "").replace("]", ""))
+    print(Fore.CYAN + "User 1: Suche nach Deals fuer: " + str(wanted_articles).replace("[", "").replace("]", ""))
     wanted_articles2 = [line.rstrip("\n") for line in open ("./wanted_{}.txt".format(tg_cid2))]
-    print(Fore.CYAN + "User 2: Suche nach Deals für: " + str(wanted_articles2).replace("[", "").replace("]", ""))
+    print(Fore.CYAN + "User 2: Suche nach Deals fuer: " + str(wanted_articles2).replace("[", "").replace("]", ""))
 
 # Link processing
 def process_link(link):
@@ -156,7 +156,7 @@ def telegram_bot():
 # Scraping routine
 def scrape(url, type):
     try:
-        debug("Scraping " + type + " deals")
+        #debug("Scraping " + type + " deals")
         site = requests.get(url, headers=header, timeout=20)
         soup = bs(site.content, "lxml")
         debug("Request completed")
@@ -166,20 +166,21 @@ def scrape(url, type):
             print("Keine Listings gefunden. Seite geändert?")
 
         for thread in listings:
-            info = thread.find("a", class_="cept-tt thread-link linkPlain space--r-1 size--all-s size--fromW3-m")
+            info = thread.find("a", class_="cept-tt thread-link linkPlain text--b space--r-1 size--all-s size--fromW3-m")
             dealid = thread.attrs["id"]
             if dealid in found_deals:
                 debug("Deal already found " + dealid)
                 continue
             title = info.string.strip()
-            link = "https://ww.mydealz.de" + info.get("href")
+            link = info.get("href")
 
             if short_url:
                 proc_link = process_link(link)
             else:
                 proc_link = link
 
-            print("[" + type + "] %s: %s" % (re.sub(r"[^\x00-\x7F]+"," ", title), proc_link))
+            # print("[" + type + "] %s: %s" % (re.sub(r"[^\x00-\x7F]+"," ", title), proc_link))
+            print("[" + "] %s: %s" % (re.sub(r"[^\x00-\x7F]+"," ", title), proc_link))
             if telegram:
                 emoji = free
                 if type == hot:
@@ -193,7 +194,7 @@ def scrape(url, type):
                 found.write(dealid + "\n")
             get_found()
             time.sleep(4)
-        debug("Scraping " + type + " deals complete")
+        #debug("Scraping " + type + " deals complete")
     except:
         debug(traceback.format_exc())
         time.sleep(60)
@@ -201,14 +202,14 @@ def scrape(url, type):
 # User wanted scraping routine
 def scrape_wanted(tg_cid, found_deals, articles, wanted_articles):
     for wanted_item in wanted_articles:
-        deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_item+").*"), class_="cept-tt thread-link linkPlain space--r-1 size--all-s size--fromW3-m")
+        deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_item+").*"), class_="cept-tt thread-link linkPlain text--b space--r-1 size--all-s size--fromW3-m")
         for thread in deals:
             dealid = articles.attrs["id"]
             if dealid in found_deals:
                 debug("Deal already found " + dealid)
                 continue
             title = thread.string.strip()
-            link = "https://ww.mydealz.de" + thread.get("href")
+            link = thread.get("href")
 
             if short_url:
                 proc_link = process_link(link)
