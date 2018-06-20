@@ -166,7 +166,7 @@ def scrape(url, type):
             print("Keine Listings gefunden. Seite geändert?")
 
         for thread in listings:
-            info = thread.find("a", class_="cept-tt thread-link linkPlain text--b space--r-1 size--all-s size--fromW3-m")
+            info = thread.find("a", class_="cept-tt thread-link linkPlain thread-title--list")
             dealid = thread.attrs["id"]
             if dealid in found_deals:
                 debug("Deal already found " + dealid)
@@ -202,7 +202,7 @@ def scrape(url, type):
 # User wanted scraping routine
 def scrape_wanted(tg_cid, found_deals, articles, wanted_articles):
     for wanted_item in wanted_articles:
-        deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_item+").*"), class_="cept-tt thread-link linkPlain text--b space--r-1 size--all-s size--fromW3-m")
+        deals = articles.find_all("a", string=re.compile("(?i).*("+wanted_item+").*"), class_="cept-tt thread-link linkPlain thread-title--list")
         for thread in deals:
             dealid = articles.attrs["id"]
             if dealid in found_deals:
