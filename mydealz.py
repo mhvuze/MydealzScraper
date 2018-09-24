@@ -23,6 +23,7 @@ SOFTWARE.
 '''
 
 import datetime
+import json
 import os
 import re
 import requests
@@ -49,13 +50,13 @@ wish = emojize(":star:", use_aliases=True)
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 init(autoreset=True) # Colorama
 shortener = Shortener("Isgd")
-header = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0"}
+header = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36 OPR/55.0.2994.61"}
 
 # Get settings from file
 def get_settings():
     global debug_mode; global short_url; global telegram
-    global sleep_time; global tg_token
-    global tg_cid; global tg_cid2    
+    global sleep_time; global tg_token; global tg_token_priority
+    global tg_cid; global tg_cid2
 
     debug_mode = 0
     short_url = 0
@@ -71,6 +72,7 @@ def get_settings():
         telegram = 1
     sleep_time = settings["sleep_time"]
     tg_token = settings["tg_token"]
+    tg_token_priority = settings["tg_token_priority"]
     tg_cid = settings["tg_cid"]
     tg_cid2 = settings["tg_cid2"]
 
@@ -107,6 +109,7 @@ def process_link(link):
     
 # Telegram bot
 bot = telebot.TeleBot(tg_token)
+bot_priority = telebot.TeleBot(tg_token_priority)
 
 @bot.message_handler(commands=["hello"])
 def hello(msg):
@@ -218,22 +221,50 @@ def scrape_wanted(tg_cid, found_deals, articles, wanted_articles):
 
             print("[WANT] %s: %s" % (re.sub(r"[^\x00-\x7F]+"," ", title), proc_link))
             if telegram:
-                bot.send_message(tg_cid, wish + " %s: %s" % (title, proc_link), disable_web_page_preview=True)
-
+                bot_priority.send_message(tg_cid, wish + " %s: %s" % (title, proc_link), disable_web_page_preview=True)
             with open("./found_{}.txt".format(tg_cid), "a") as found:
                 found.write(dealid + "\n")
             get_found()
             time.sleep(4)
 
+# Hottest deals scraping routine
+def scrape_hottest(tg_cid):
+    try:
+        debug("Fetching json for hottest deals")
+        json_url = requests.get("https://www.mydealz.de/widget/hottest?selectedRange=day&threadTypeTranslated=&merchant_name=&merchant_id=&eventId=&groupName=&context=listing", headers=header, timeout=20)
+        json_data = json_url.json()
+        debug("Request completed")        
+        
+        for thread in json_data["data"]["threads"]:
+            title = thread["title"].strip()
+            link = thread["url"]
+            if short_url:
+                proc_link = process_link(link)
+            else:
+                proc_link = link
+            dealid = "hot_" + str(thread["id"])
+            if dealid in found_deals:
+                debug("Deal already found " + dealid)
+                continue
+
+            print("[" + "] %s: %s" % (re.sub(r"[^\x00-\x7F]+"," ", title), proc_link))
+            if telegram:
+                bot_priority.send_message(tg_cid, hot + " %s: %s" % (title, proc_link), disable_web_page_preview=True)
+                bot_priority.send_message(tg_cid2, hot + " %s: %s" % (title, proc_link), disable_web_page_preview=True)
+                time.sleep(5)
+
+            with open("./found_{}.txt".format(tg_cid), "a") as found:
+                found.write(dealid + "\n")
+            get_found()
+            time.sleep(4)
+        debug("Processing hottest deals complete")
+    except:
+        debug(traceback.format_exc())
+        time.sleep(60)
+
 # MyDealz scraper
 def mydealz_scraper():
     while True:
-        # Hot deals scraper
-        scrape("https://www.mydealz.de/hot?page=1", hot)
-        
-        # Freebie scraper
-        scrape("https://www.mydealz.de/gruppe/freebies-new?page=1", free)
-        
         # Wanted scraper
         try:
             debug("Scraping for wanted items")
@@ -253,6 +284,16 @@ def mydealz_scraper():
         except:
             debug(traceback.format_exc())
             time.sleep(60)
+        
+        # Hottest today scraper
+        scrape_hottest(tg_cid)
+        
+        # Hot deals scraper
+        scrape("https://www.mydealz.de/hot?page=1", hot)
+        
+        # Freebie scraper
+        scrape("https://www.mydealz.de/gruppe/freebies-new?page=1", free)
+        
         debug("Now sleeping until next cycle")
         time.sleep(sleep_time)
 
