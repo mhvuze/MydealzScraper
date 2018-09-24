@@ -228,7 +228,7 @@ def scrape_wanted(tg_cid, found_deals, articles, wanted_articles):
             time.sleep(4)
 
 # Hottest deals scraping routine
-def scrape_hottest(tg_cid):
+def scrape_hottest():
     try:
         debug("Fetching json for hottest deals")
         json_url = requests.get("https://www.mydealz.de/widget/hottest?selectedRange=day&threadTypeTranslated=&merchant_name=&merchant_id=&eventId=&groupName=&context=listing", headers=header, timeout=20)
@@ -286,7 +286,7 @@ def mydealz_scraper():
             time.sleep(60)
         
         # Hottest today scraper
-        scrape_hottest(tg_cid)
+        scrape_hottest()
         
         # Hot deals scraper
         scrape("https://www.mydealz.de/hot?page=1", hot)
